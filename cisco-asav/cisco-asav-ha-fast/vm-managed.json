@@ -1,0 +1,155 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "imagePublisher":  {
+        "type": "string"
+      },
+      "imageOffer":  {
+        "type": "string"
+      },
+      "imageSKU":  {
+        "type": "string"
+      },
+      "imageVersion":  {
+        "type": "string"
+      },
+      "vmName": {
+        "type": "string"
+      },
+      "vmName-Prefix": {
+        "type": "string"
+      },
+      "location": {
+        "type": "string"
+      },
+      "availSet": {
+        "type": "string"
+      },
+      "vmSize": {
+        "type": "string"
+      },
+      "osDiskMode": {
+        "type": "string"
+      },
+      "authenticationType": {
+        "type": "string"
+      },
+      "adminUsername": {
+        "type": "string"
+      },
+      "adminPassword": {
+        "type": "string"
+      },
+      "sshPublicKey": {
+        "type": "string"
+      },
+      "OSDiskName": {
+          "type": "string"
+      },
+      "tags": {
+        "type": "object",
+        "metadata": {
+          "description": "Default tags required, passed in as a hash"
+        }
+      }
+    },
+    "variables" : {
+          "sshKeyPath": "[concat('/home/',parameters('adminUsername'),'/.ssh/authorized_keys')]",
+          "osProfile": "[variables(concat('osprofile',parameters('authenticationType')))]",
+          "osProfilesshPublicKey": {
+              "computername": "[parameters('vmName')]",
+              "adminUsername": "[parameters('adminUsername')]",
+              "linuxConfiguration": {
+                  "disablePasswordAuthentication": "true",
+                  "ssh": {
+                      "publicKeys": [
+                          {
+                              "path": "[variables('sshKeyPath')]",
+                              "keyData": "[parameters('sshPublicKey')]"
+                          }
+                      ]
+                  }
+              }
+          },
+          "osProfilepassword": {
+              "computername": "[parameters('vmName')]",
+              "adminUsername": "[parameters('adminUsername')]",
+              "adminPassword": "[parameters('adminPassword')]"
+          }
+   },
+   "resources": [
+  
+           {
+              "apiVersion": "2017-03-30",
+              "type": "Microsoft.Compute/virtualMachines",
+              "name": "[parameters('vmName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "plan": {
+                  "name": "[parameters('imageSKU')]",
+                  "product": "[parameters('imageOffer')]",
+                  "publisher": "[parameters('imagePublisher')]"
+              },           
+              "properties": {
+                  "hardwareProfile": {
+                      "vmSize": "[parameters('vmSize')]"
+                  },
+                  "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets/', parameters('availSet'))]"
+                  },
+                  "osProfile": "[variables('osProfile')]",
+                  "storageProfile": {
+                      "imageReference": {
+                          "publisher": "[parameters('imagePublisher')]",
+                          "offer": "[parameters('imageOffer')]",
+                          "sku": "[parameters('imageSKU')]",
+                          "version": "[parameters('imageVersion')]"
+                      },
+                      "osDisk": {
+                           "caching": "ReadWrite",
+                           "name": "[parameters('OSDiskName')]",
+                           "createOption": "FromImage"
+                      }
+                  },
+                  "networkProfile": {
+                      "networkInterfaces": [
+                          {
+                              "properties": {
+                                  "primary": true
+                              },
+                              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('vmName-Prefix'),'-nic0-core'))]"
+                          },
+                          {
+                              "properties": {
+                                  "primary": false
+                              },
+                              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('vmName-Prefix'),'-nic1-core'))]"
+                          },
+                          {
+                              "properties": {
+                                  "primary": false
+                              },
+                              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('vmName-Prefix'),'-nic2-core'))]"
+                          },
+                          {
+                              "properties": {
+                                  "primary": false
+                              },
+                              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('vmName-Prefix'),'-nic3-core'))]"
+                          }
+                      ]
+                  },
+                  "diagnosticsProfile": {
+                      "bootDiagnostics": {
+                          "enabled": false
+                      }
+                  }
+                 
+              }
+          }     
+        
+        
+         ],
+    "outputs": {  }
+  }
